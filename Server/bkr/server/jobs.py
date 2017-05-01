@@ -1246,6 +1246,8 @@ def submit_inventory_job():
     job_details = {}
     job_details['system'] = system
     job_details['whiteboard'] = 'Update Inventory for %s' % fqdn
+    job_details['fqdn'] = fqdn
+
     with convert_internal_errors():
         job_xml = Job.inventory_system_job(distro, dryrun=dryrun, **job_details)
     r = {}
