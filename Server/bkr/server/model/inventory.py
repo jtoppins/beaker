@@ -298,6 +298,8 @@ class System(DeclarativeMappedObject, ActivityMixin):
            default=select([KernelType.id], limit=1).where(KernelType.kernel_type==u'default').correlate(None),
            nullable=False)
     kernel_type = relationship('KernelType')
+    sysfw_version = Column(String(32))
+    sysfw_date = Column(DateTime, default=None)
     devices = relationship('Device', secondary=system_device_map,
             back_populates='systems')
     disks = relationship('Disk', back_populates='system',
@@ -1145,7 +1147,9 @@ class System(DeclarativeMappedObject, ActivityMixin):
     def get_update_method(self,obj_str):
         methods = dict ( Cpu = self.updateCpu, Arch = self.updateArch,
                          Devices = self.updateDevices, Numa = self.updateNuma,
-                         Hypervisor = self.updateHypervisor, Disk = self.updateDisk)
+                         Hypervisor = self.updateHypervisor,
+                         Disk = self.updateDisk,
+                         SystemFirmware=self.updateSystemFirmware)
         return methods[obj_str]
 
     def update_legacy(self, inventory):
@@ -1246,6 +1250,10 @@ class System(DeclarativeMappedObject, ActivityMixin):
         self.date_modified = datetime.utcnow()
         return 0
 
+    def updateSystemFirmware(self, firmware):
+        self.sysfw_version = firmware['version']
+        self.sysfw_date = firmware['date']
+
     def updateHypervisor(self, hypervisor):
         if hypervisor:
             hvisor = Hypervisor.by_name(hypervisor)
@@ -1321,7 +1329,9 @@ class System(DeclarativeMappedObject, ActivityMixin):
                                    bus = device['bus'],
                                    driver = device['driver'],
                                    device_class_id = device_class.id,
-                                   description = device['description'])
+                                   description = device['description'],
+                                   fw_version = device['fw_version'],
+                                   fw_date = device['fw_date'])
             if mydevice not in self.devices:
                 self.devices.append(mydevice)
                 self.record_activity(user=identity.current.user,
@@ -2348,6 +2358,13 @@ class Device(DeclarativeMappedObject):
         UniqueConstraint('vendor_id', 'device_id', 'subsys_device_id',
                'subsys_vendor_id', 'bus', 'driver', 'description',
                'device_class_id', name='device_uix_1'),
+        # TODO jtoppins: this looks like a problem, device nodes are stored
+        # not one-to-one to machines but instead a many(machines) to
+        # one(device) relationship. This means that the exact same 'kind'
+        # of device but with different firmware will additionally need to be
+        # stored in the database again. It seems that extending the above
+        # list probably will do it, but I don't know what other de-duplication
+        # code will need to be touched.
         {'mysql_engine': 'InnoDB'}
     )
     id = Column(Integer, autoincrement=True, primary_key=True)
@@ -2362,6 +2379,8 @@ class Device(DeclarativeMappedObject):
     device_class = relationship(DeviceClass)
     date_added = Column(DateTime, default=datetime.utcnow, nullable=False)
     systems = relationship(System, secondary=system_device_map, back_populates='devices')
+    fw_version = Column(String(32))
+    fw_date = Column(DateTime, default=None)
 
 Index('ix_device_pciid', Device.vendor_id, Device.device_id)
 
