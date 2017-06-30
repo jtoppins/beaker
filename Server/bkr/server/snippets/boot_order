@@ -24,7 +24,8 @@ if efibootmgr &>/dev/null ; then
 #}
     boot_order=$(efibootmgr | awk '/BootOrder/ { print $2 }')
     os_boot_entry=$(cut -d, -f1 <<<"$boot_order")
-    new_boot_order=$(cut -d, -f2- <<<"$boot_order"),"$os_boot_entry"
+    fb_before_install=$(cut -d, -f2 <<<"$boot_order")
+    new_boot_order=$(fb_before_install),$(os_boot_entry),$(cut -d, -f3- <<<"$boot_order")
     efibootmgr -o "$new_boot_order"
     efibootmgr -n "$os_boot_entry"
     # save the boot entry for later, so that rhts-reboot can set BootNext as well
