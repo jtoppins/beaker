@@ -22,8 +22,8 @@ from sqlalchemy import Column, String, DateTime
 def upgrade():
     op.add_column('system', Column('sysfw_version', String(32), nullable=True))
     op.add_column('system', Column('sysfw_date', DateTime, nullable=True))
-    op.add_column('device', Column('fw_version', String(32), mullable=True))
-    op.add_column('device', Column('fw_date', DateTime, mullable=True))
+    op.add_column('device', Column('fw_version', String(32), nullable=True))
+    op.add_column('device', Column('fw_date', DateTime, nullable=True))
     # TODO: I think we also need to play with the table constraints for the
     # device table as well but I am not sure specifically what is needed
     # right now
